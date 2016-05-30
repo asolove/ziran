@@ -8,20 +8,23 @@ defmodule Entity do
       end
 
       def init(%{:id => id, :table => table} =opts) do
-        attrs = attributes(table, id)
-        {:ok, {id, attrs, opts}}
+        {:ok, {id, load(table, id), opts}}
       end
+
+      # Wrap GenServer calls to add magic
+      #  - tracing
+      #  - persistence & version management
 
       def handle_call(call, from, {id, attrs, opts}) do
         response = _handle_call(call, from, attrs)
-        new_attrs = get_attrs(response)
+        new_attrs = get_state_from_call_response(response)
 
 				if new_attrs != attrs do
           save(opts.table, opts.id, new_attrs)
         end
 
         state = {id, new_attrs, opts}
-        update_state(response, state)
+        update_state_in_call_response(response, state)
       end
 
       def _handle_call(call, from, state) do
@@ -30,18 +33,22 @@ defmodule Entity do
 
       defoverridable [_handle_call: 3]
 
+      # Persistence
+
       defp save(table, id, attrs) do
         :ets.insert(table, {id, attrs})
       end
 
-      defp attributes(table, id) do
+      defp load(table, id) do
         case :ets.lookup(table, id) do
           [{id, attrs}] -> attrs
           _ -> default_attrs
         end
       end
 
-      defp get_attrs(resp) do
+      # Handling gen_server responses
+
+      defp get_state_from_call_response(resp) do
         case resp do
 					{:reply, _, attrs}    -> attrs
           {:reply, _, attrs, _} -> attrs
@@ -52,7 +59,7 @@ defmodule Entity do
         end
       end
 
-      defp update_state(resp, state) do
+      defp update_state_in_call_response(resp, state) do
         case resp do
 					{:reply, a, _}    -> {:reply, a, state}
           {:reply, a, _, t} -> {:reply, a, state, t}
