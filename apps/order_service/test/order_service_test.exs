@@ -6,9 +6,15 @@ defmodule OrderServiceTest do
     {:ok, sup} = OrderService.Supervisor.start_link
     {:ok, order} = OrderService.Supervisor.get(sup, 10)
     {:ok, "start"} = OrderService.Order.state(order)
-    assert :ok = OrderService.Order.purchase(order)
+
+    :ok = OrderService.Order.purchase(order)
     {:ok, "purchased"} = OrderService.Order.state(order)
-    assert :ok = OrderService.Order.cancel(order)
+    {:ok, order} = OrderService.Supervisor.get(sup, 10)
+    {:ok, "purchased"} = OrderService.Order.state(order)
+
+    :ok = OrderService.Order.cancel(order)
+    {:ok, "canceled"} = OrderService.Order.state(order)
+    {:ok, order} = OrderService.Supervisor.get(sup, 10)
     {:ok, "canceled"} = OrderService.Order.state(order)
   end
 end
