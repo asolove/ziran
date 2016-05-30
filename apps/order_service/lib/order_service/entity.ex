@@ -21,6 +21,11 @@ defmodule Entity do
 
 				if new_attrs != attrs do
           save(opts.table, opts.id, new_attrs)
+          if Map.get(opts, :trace) do
+            entity = {__MODULE__, opts.id}
+            action = {{from, call}, new_attrs}
+            OrderService.Trace.action(opts.trace, entity, action)
+          end
         end
 
         state = {id, new_attrs, opts}

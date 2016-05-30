@@ -12,7 +12,7 @@ defmodule OrderService.Supervisor do
   def init(:ok) do
     table = :ets.new(:order, [:set, :public])
     children = [
-      worker(OrderService.Order, [%{table: table}], restart: :temporary)
+      worker(OrderService.Order, [%{table: table, trace: Trace}], restart: :temporary)
     ]
     supervise(children, strategy: :simple_one_for_one)
   end
